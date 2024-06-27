@@ -1,5 +1,5 @@
-<dashboard version="1.1" theme="light">
-  <label>Confluent Cloud Chargeback</label>
+<form version="1.1" theme="light">
+  <label>Confluent Cloud Billing</label>
   <search id="ccloud_billing">
     <query>
       | inputlookup append=t ccloud-billing-January_2024.csv 
@@ -11,14 +11,30 @@
     <earliest>@y</earliest>
     <latest>now</latest>
   </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="envSelector">
+      <label>Select an Environment</label>
+      <fieldForLabel>translation</fieldForLabel>
+      <fieldForValue>env</fieldForValue>
+      <search>
+        <query>| inputlookup env-translation</query>
+        <earliest>-15m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+  </fieldset>
   <row>
     <panel>
       <title>Cost breakdown per Environment</title>
       <chart>
         <search base="ccloud_billing">
-          <query>
-| stats sum(Total) as sum_Total by EnvironmentID|
-eval sum_Total=round(sum_Total,2)</query>
+          <query>| lookup env-translation env as EnvironmentID OUTPUTNEW translation
+| fillnull value="ARCHIVED" translation
+| stats sum(Total) as sum_Total by translation
+| eval sum_Total=round(sum_Total,2)</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -58,7 +74,7 @@ eval sum_Total=round(sum_Total,2)</query>
       <title>Cost breakdown per cluster</title>
       <chart>
         <search base="ccloud_billing">
-          <query> | search Type="KafkaNumCKUs" | stats sum(Total) as sum_Total by LogicalClusterName |
+          <query>| search Type="KafkaNumCKUs" EnvironmentID=$envSelector$ | stats sum(Total) as sum_Total by LogicalClusterName |
 eval sum_Total=round(sum_Total,2)</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
@@ -99,7 +115,7 @@ eval sum_Total=round(sum_Total,2)</query>
       <title>Cost breakdown per Product</title>
       <chart>
         <search base="ccloud_billing">
-          <query>| stats sum(Total) as sum_Total by Product |
+          <query>| search EnvironmentID=$envSelector$| stats sum(Total) as sum_Total by Product |
 eval sum_Total=round(sum_Total,2)</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
@@ -140,7 +156,7 @@ eval sum_Total=round(sum_Total,2)</query>
       <title>Cost breakdown per Type</title>
       <chart>
         <search base="ccloud_billing">
-          <query>| stats sum(Total) as sum_Total by Type |
+          <query>| search EnvironmentID=$envSelector$| stats sum(Total) as sum_Total by Type |
 eval sum_Total=round(sum_Total,2)</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
@@ -183,8 +199,7 @@ eval sum_Total=round(sum_Total,2)</query>
       <title>Total Cost Over Time</title>
       <chart>
         <search base="ccloud_billing">
-          <query>
-| eval _time = strptime (StartDate, "%m-%d-%YT%H:%M:%S")
+          <query>| search EnvironmentID=$envSelector$ | eval _time = strptime (StartDate, "%m-%d-%YT%H:%M:%S")
 | timechart sum(Total) as sum_Total span=1mon|
 eval sum_Total=round(sum_Total,2)</query>
         </search>
@@ -228,10 +243,12 @@ eval sum_Total=round(sum_Total,2)</query>
       <title>Cost Over Time by Environment</title>
       <chart>
         <search base="ccloud_billing">
-          <query>
+          <query>| search EnvironmentID=$envSelector$ 
+| lookup env-translation env as EnvironmentID OUTPUTNEW translation
+| fillnull value="ARCHIVED" translation
 | eval _time = strptime (StartDate, "%m-%d-%YT%H:%M:%S")
 | eval Total = round(Total, 2)
-| timechart sum(Total) as sum_Total span=1mon useother=f usenull=f by EnvironmentID</query>
+| timechart sum(Total) as sum_Total span=1mon useother=f usenull=f by translation</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -273,8 +290,7 @@ eval sum_Total=round(sum_Total,2)</query>
       <title>Cost Over Time by Product</title>
       <chart>
         <search base="ccloud_billing">
-          <query>
-| eval _time = strptime (StartDate, "%m-%d-%YT%H:%M:%S")
+          <query>| search EnvironmentID=$envSelector$ | eval _time = strptime (StartDate, "%m-%d-%YT%H:%M:%S")
 | eval Total = round(Total, 2)
 | timechart sum(Total) as sum_Total span=1mon useother=f usenull=f by Product</query>
         </search>
@@ -316,8 +332,7 @@ eval sum_Total=round(sum_Total,2)</query>
       <title>Cost Over Time by Type</title>
       <chart>
         <search base="ccloud_billing">
-          <query>
-| eval _time = strptime (StartDate, "%m-%d-%YT%H:%M:%S")
+          <query>| search EnvironmentID=$envSelector$ | eval _time = strptime (StartDate, "%m-%d-%YT%H:%M:%S")
 | eval Total = round(Total, 2)
 | timechart sum(Total) as sum_Total span=1mon useother=f usenull=f by Type</query>
         </search>
@@ -356,4 +371,4 @@ eval sum_Total=round(sum_Total,2)</query>
       </chart>
     </panel>
   </row>
-</dashboard>
+</form>

@@ -17,5 +17,9 @@ services:
       retries: 20
     volumes:
       - ./splunk.yml:/tmp/defaults/default.yml
-      - /opt/splunk/var
-      - /opt/splunk/etc
+      - splunk_var:/opt/splunk/var
+      - splunk_etc:/opt/splunk/etc
+
+volumes:
+  splunk_var: {}
+  splunk_etc: {}
