@@ -16,9 +16,21 @@ services:
       timeout: 5s
       retries: 20
     volumes:
-      - ./splunk.yml:/tmp/defaults/default.yml
+      - ./splunk/splunk.yml:/tmp/defaults/default.yml
+      - ./splunk/ccloud-billing-dashboard.xml:/opt/splunk/etc/apps/search/local/data/ui/views/ccloud-billing-dashboard.xml
       - splunk_var:/opt/splunk/var
       - splunk_etc:/opt/splunk/etc
+
+  # CCloud Billing Export
+  ccloud-billing-exporter:
+    container_name: ccloud-billing-exporter
+    build: ./ccloud-billing-exporter/Dockerfile
+    environment:
+      - CCLOUD_BE_REST_API_KEY=${CCLOUD_BE_REST_API_KEY}
+      - CCLOUD_BE_REST_API_SECRET=${CCLOUD_BE_REST_API_SECRET}
+      - CCLOUD_BE_SPL_HEC_TOKEN=00000000-0000-0000-0000-0000000000000
+    depends_on:
+      - splunk-ccloud
 
 volumes:
   splunk_var: {}

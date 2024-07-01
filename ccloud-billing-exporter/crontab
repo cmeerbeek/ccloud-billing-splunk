@@ -1,0 +1,3 @@
+# START CRON JOB
+5 4 * * * python3 /app/ccloud-billing-export.py > /proc/1/fd/1 2>/proc/1/fd/2
+# END CRON JOB
